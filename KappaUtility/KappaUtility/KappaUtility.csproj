@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{BB55F928-C8E2-42AE-8017-FEEC04AF7035}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>KappaUtility</RootNamespace>
+    <AssemblyName>KappaUtility</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EloBuddy">
+      <HintPath>..\..\..\..\..\..\Desktop\New folder\EloBuddy\System\EloBuddy.dll</HintPath>
+    </Reference>
+    <Reference Include="EloBuddy.SDK">
+      <HintPath>..\..\..\..\..\..\Desktop\New folder\EloBuddy\System\EloBuddy.SDK.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\..\..\Desktop\New folder\EloBuddy\System\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX">
+      <HintPath>..\..\..\..\..\..\Desktop\New folder\EloBuddy\System\SharpDX.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D9">
+      <HintPath>..\..\..\..\..\..\Desktop\New folder\EloBuddy\System\SharpDX.Direct3D9.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Brain\Activator\Items\Defence\Def.cs" />
+    <Compile Include="Brain\Activator\Items\Defence\Potions.cs" />
+    <Compile Include="Brain\Activator\Items\Defence\Qss.cs" />
+    <Compile Include="Brain\Activator\Items\Load.cs" />
+    <Compile Include="Brain\Activator\Items\Offence\items.cs" />
+    <Compile Include="Brain\Activator\Load.cs" />
+    <Compile Include="Brain\Activator\Spells\AutoShield\AutoShield.cs" />
+    <Compile Include="Brain\Activator\Spells\AutoShield\Cast.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\balls.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Borrier.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Clanse.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Clarty.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Exhust.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Flish.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Heel.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Ignoite.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Spells\Smote.cs" />
+    <Compile Include="Brain\Activator\Spells\SummonerSpells\Summs.cs" />
+    <Compile Include="Brain\Load.cs" />
+    <Compile Include="Brain\Utility\Load.cs" />
+    <Compile Include="Brain\Utility\Misc\AutoLvlup\Autolvlup.cs" />
+    <Compile Include="Brain\Utility\Misc\AutoLvlup\Sequence.cs" />
+    <Compile Include="Brain\Utility\Misc\DPSCalculator\DPS.cs" />
+    <Compile Include="Brain\Utility\Misc\DPSCalculator\DPSHeros.cs" />
+    <Compile Include="Brain\Utility\Misc\Lantern\PickLantern.cs" />
+    <Compile Include="Brain\Utility\Misc\Load.cs" />
+    <Compile Include="Brain\Utility\Misc\Pings\PingInfo.cs" />
+    <Compile Include="Brain\Utility\Misc\Pings\PingDetector.cs" />
+    <Compile Include="Brain\Utility\Misc\Skin\SkinChanger.cs" />
+    <Compile Include="Brain\Utility\Misc\Warding\AntiStealth.cs" />
+    <Compile Include="Brain\Utility\Misc\Warding\WardsHelper.cs" />
+    <Compile Include="Brain\Utility\Tracker\HUD\DeathTimers.cs" />
+    <Compile Include="Brain\Utility\Tracker\HUD\HUDTracker.cs" />
+    <Compile Include="Brain\Utility\Tracker\TeleportTracker\Recallbar.cs" />
+    <Compile Include="Brain\Utility\Tracker\TeleportTracker\TeleportTracker.cs" />
+    <Compile Include="Brain\Utility\Tracker\Units\Ganks\Info.cs" />
+    <Compile Include="Brain\Utility\Tracker\Units\Ganks\Detector.cs" />
+    <Compile Include="Brain\Utility\Tracker\Load.cs" />
+    <Compile Include="Brain\Utility\Tracker\SpellTracker\DetectedSpellInfo.cs" />
+    <Compile Include="Brain\Utility\Tracker\SpellTracker\SpellInfo.cs" />
+    <Compile Include="Brain\Utility\Tracker\SpellTracker\SpellTracker.cs" />
+    <Compile Include="Brain\Utility\Tracker\SpellTracker\SpellTrackerBase.cs" />
+    <Compile Include="Brain\Utility\Tracker\Units\Placements\TrapsTracker.cs" />
+    <Compile Include="Brain\Utility\Tracker\Units\Placements\WardsTracker.cs" />
+    <Compile Include="Common\Databases\SheildsDatabase.cs" />
+    <Compile Include="Common\Events\OnInComingDamage.cs" />
+    <Compile Include="Common\KappaEvade\Collision.cs" />
+    <Compile Include="Common\KappaEvade\Database.cs" />
+    <Compile Include="Common\KappaEvade\KappaEvade.cs" />
+    <Compile Include="Common\KappaEvade\SpellsDetector.cs" />
+    <Compile Include="Common\Load.cs" />
+    <Compile Include="Common\Misc\Entities\Mobs.cs" />
+    <Compile Include="Common\Misc\Entities\Wards.cs" />
+    <Compile Include="Common\Misc\Extensions.cs" />
+    <Compile Include="Common\Databases\ItemsDatabase.cs" />
+    <Compile Include="Common\Misc\Logger.cs" />
+    <Compile Include="Common\TeleportsHandler\TeleportInfo.cs" />
+    <Compile Include="Common\TeleportsHandler\TeleportsManager.cs" />
+    <Compile Include="Common\Texture\ChampionTexture.cs" />
+    <Compile Include="Common\Texture\GameVersion.cs" />
+    <Compile Include="Common\Texture\LoadTexture.cs" />
+    <Compile Include="Common\Texture\TextureDownloader.cs" />
+    <Compile Include="Common\Texture\TextureManager.cs" />
+    <Compile Include="main.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Empty.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\HP.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\MP.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\XP.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Recall.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Teleport.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
