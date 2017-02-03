@@ -22,7 +22,7 @@ namespace KappaUtility.Common.Misc
         {
             return (!target.CanMove && !target.IsMe) || target.HasBuffOfType(BuffType.Charm) || target.HasBuffOfType(BuffType.Knockback) || target.HasBuffOfType(BuffType.Knockup)
                    || target.HasBuffOfType(BuffType.Fear) || target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) || target.HasBuffOfType(BuffType.Suppression)
-                   || target.HasBuffOfType(BuffType.Taunt) || target.HasBuffOfType(BuffType.Sleep);
+                   || target.HasBuffOfType(BuffType.Taunt) || target.HasBuffOfType(BuffType.Grounded);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace KappaUtility.Common.Misc
         {
             return ((!target.CanMove || target.IsRecalling()) && !target.IsMe) || target.HasBuffOfType(BuffType.Charm) || target.HasBuffOfType(BuffType.Knockback)
                    || target.HasBuffOfType(BuffType.Knockup) || target.HasBuffOfType(BuffType.Fear) || target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun)
-                   || target.HasBuffOfType(BuffType.Suppression) || target.HasBuffOfType(BuffType.Taunt) || target.HasBuffOfType(BuffType.Sleep);
+                   || target.HasBuffOfType(BuffType.Suppression) || target.HasBuffOfType(BuffType.Taunt) || target.HasBuffOfType(BuffType.Grounded);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace KappaUtility.Common.Misc
         public static List<BuffType> CCbuffs = new List<BuffType>
             {
                 BuffType.Blind, BuffType.Charm, BuffType.Fear, BuffType.Knockback, BuffType.Knockup, BuffType.NearSight, BuffType.Poison, BuffType.Polymorph, BuffType.Shred, BuffType.Silence,
-                BuffType.Sleep, BuffType.Slow, BuffType.Snare, BuffType.Stun, BuffType.Suppression, BuffType.Taunt
+                BuffType.Grounded, BuffType.Slow, BuffType.Snare, BuffType.Stun, BuffType.Suppression, BuffType.Taunt
             };
 
         /// <summary>
