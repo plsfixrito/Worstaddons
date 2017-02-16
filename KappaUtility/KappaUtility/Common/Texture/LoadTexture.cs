@@ -84,7 +84,7 @@ namespace KappaUtility.Common.Texture
 
                     foreach (var slot in spellSlots)
                     {
-                        var spellicon = ResizeImage(Image.FromFile(ChampionIconsFolder + hero.ChampionName + "\\" + hero.ChampionName + slot + ".png"));
+                        var spellicon = ResizeImage(Image.FromFile(ChampionIconsFolder + hero.ChampionName + "\\" + slot + ".png"));
                         var SpellTexture = TextureLoader.Load(spellicon, out TextureName);
                         AllTexture.Add(SpellTexture);
                         AllImages.Add(spellicon);

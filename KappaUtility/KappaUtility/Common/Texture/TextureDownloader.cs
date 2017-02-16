@@ -80,12 +80,13 @@ namespace KappaUtility.Common.Texture
             {
                 var spell = hero.Spellbook.GetSpell(slot);
                 var filename = spell.Name + ".png";
-                if (!Directory.GetFiles(dir).Contains(dir + hero.ChampionName + slot + ".png"))
+                var storename = slot + ".png";
+                if (!Directory.GetFiles(dir).Contains(dir + storename))
                 {
                     Logger.Send("Downloading " + filename);
                     var webClient = new WebClient();
                     i++;
-                    webClient.DownloadFileAsync(new Uri(AbilitiesIconsUrl + filename), dir + hero.ChampionName + slot + ".png");
+                    webClient.DownloadFileAsync(new Uri(AbilitiesIconsUrl + filename), dir + storename);
                     webClient.DownloadFileCompleted += delegate
                     {
                         webClient.Dispose();

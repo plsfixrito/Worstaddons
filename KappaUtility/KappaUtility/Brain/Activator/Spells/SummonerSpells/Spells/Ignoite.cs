@@ -35,16 +35,14 @@ namespace KappaUtility.Brain.Activator.Spells.SummonerSpells.Spells
             if (!Summs.menu.CheckBoxValue("Ignite"))
                 return;
 
-            foreach (
-                var target in
-                    EntityManager.Heroes.Enemies.Where(
-                        e =>
-                        Ignite.IsReady() && Summs.menu.CheckBoxValue("ignite" + e.Name()) && Player.Instance.GetAutoAttackDamage(e) * 2 < e.Health && e.IsKillable(600)
-                        && Player.Instance.GetSummonerSpellDamage(e, DamageLibrary.SummonerSpells.Ignite) >= e.TotalShieldHealth()))
-            {
-                if (target != null)
-                    Ignite.Cast(target);
-            }
+            if(!Ignite.IsReady())
+                return;
+
+            var targets = EntityManager.Heroes.Enemies.Where(e => e.IsKillable(600) && Player.Instance.GetSummonerSpellDamage(e, DamageLibrary.SummonerSpells.Ignite) >= e.TotalShieldHealth());
+            var target = targets.OrderByDescending(t => t.Distance(Player.Instance)).FirstOrDefault(t => Summs.menu.CheckBoxValue("ignite" + t.Name()) && t.Health >= Player.Instance.GetAutoAttackDamage(t));
+
+            if (target != null)
+                Ignite.Cast(target);
         }
     }
 }
