@@ -31,7 +31,7 @@ namespace AFK_RIFT
             }
         }
 
-        private static readonly List<ItemId> ItemsToBuy = new List<ItemId>() { ItemId.Vision_Ward, ItemId.Boots_of_Speed };
+        private static readonly List<ItemId> ItemsToBuy = new List<ItemId>() { ItemId.Control_Ward, ItemId.Boots_of_Speed };
 
         static void Main(string[] args)
         {
@@ -85,7 +85,7 @@ namespace AFK_RIFT
                 Console.WriteLine("Game Ended ! Leaving Game In: " + random / 1000 + " Seconds.");
             }
             
-            var visionward = new Item(ItemId.Vision_Ward, 600);
+            var visionward = new Item(ItemId.Control_Ward, 600);
             if (visionward.IsInRange(WardPosition) && visionward.IsOwned(Player.Instance))
             {
                 visionward.Cast(WardPosition);
