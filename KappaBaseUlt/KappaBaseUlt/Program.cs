@@ -56,8 +56,8 @@ namespace KappaBaseUlt
 
             MenuIni.AddGroupLabel("Drawings");
             MenuIni.Add("draw", new CheckBox("Draw Recall Tracker"));
-            MenuIni.Add("x", new Slider("Drawing X"));
-            MenuIni.Add("y", new Slider("Drawing Y"));
+            MenuIni.Add("x", new Slider("Drawing X", 85));
+            MenuIni.Add("y", new Slider("Drawing Y", 40));
 
             Game.OnUpdate += Game_OnUpdate;
             Teleport.OnTeleport += Teleport_OnTeleport;
