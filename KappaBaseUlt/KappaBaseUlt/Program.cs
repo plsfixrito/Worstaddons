@@ -8,300 +8,366 @@ using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
+using Color = System.Drawing.Color;
 
 namespace KappaBaseUlt
 {
-    internal static class Program
+    public class Program
     {
-        private static float Changed;
-        private static int Counter;
-        private static Menu baseMenu;
-        private static Spell.Skillshot R { get; set; }
-
-        private static readonly List<EnemyInfo> baseultlist = new List<EnemyInfo>();
-        private static readonly List<EnemyInfo> RecallsList = new List<EnemyInfo>();
-        
-        private static void Main()
+        static void Main(string[] args)
         {
             Loading.OnLoadingComplete += Loading_OnLoadingComplete;
         }
 
+        private static Baseult BaseUltSpell;
+        private static Menu MenuIni;
+
+        public static bool Enabled => MenuIni.Get<KeyBind>("enable").CurrentValue;
+        public static bool DisableKey => MenuIni.Get<KeyBind>("disable").CurrentValue;
+        public static bool Draw => MenuIni.Get<CheckBox>("draw").CurrentValue;
+        public static int FocusMode => MenuIni.Get<ComboBox>("focus").CurrentValue;
+        public static int Tolerance => MenuIni.Get<Slider>("tolerance").CurrentValue;
+        public static int FowTolerance => MenuIni.Get<Slider>("fow").CurrentValue;
+        public static int X => MenuIni.Get<Slider>("x").CurrentValue;
+        public static int Y => MenuIni.Get<Slider>("y").CurrentValue;
+
+        public static Dictionary<int, Baseult> InGameUlts = new Dictionary<int, Baseult>();
+        public static List<TrackedRecall> TrackedRecalls = new List<TrackedRecall>();
+        public static List<NotVisiable> NotVisiableEnemies = new List<NotVisiable>();
+
         private static void Loading_OnLoadingComplete(EventArgs args)
         {
-            var me = Database.Champions.FirstOrDefault(hero => hero.Champion == Player.Instance.Hero);
-            if (me?.Champion != Player.Instance.Hero)
-            {
+            if(!loadUlts())
                 return;
-            }
 
-            R = new Spell.Skillshot(me.Slot, me.Range, me.Type, me.CastDelay, me.Speed, me.Width);
+            MenuIni = MainMenu.AddMenu("KappaBaseUlt", "kappabaseult");
+            MenuIni.AddGroupLabel("KappaBaseUlt");
+            MenuIni.Add("focus", new ComboBox("Priority mode", 0, "Target Selector Priority", "Least Health", "First Recall", "Last Recall"));
+            MenuIni.Add("enable", new KeyBind("Enable", true, KeyBind.BindTypes.PressToggle));
+            MenuIni.Add("disable", new KeyBind("Force Disable", false, KeyBind.BindTypes.HoldActive));
+            MenuIni.Add("fow", new Slider("FoW Tolerance 0 = Always (In Seconds)", 7, 0, 60));
+            MenuIni.Add("tolerance", new Slider("Shoot Tolerance (In MilliSeconds)", 0, 0, 300));
+            MenuIni.AddSeparator(0);
 
-            baseMenu = MainMenu.AddMenu("KappaBaseUlt", "KappaBaseUlt");
-            baseMenu.AddGroupLabel(Player.Instance.Hero + " BaseUlt");
-            baseMenu.AddSeparator(0);
-            baseMenu.AddGroupLabel("Key Settings:");
-            baseMenu.Add("enable", new KeyBind("Enable BaseUlt", true, KeyBind.BindTypes.PressToggle, 'K'));
-            baseMenu.Add("disable1", new KeyBind("Disable Key", false, KeyBind.BindTypes.HoldActive));
-            baseMenu.AddSeparator(0);
-            baseMenu.AddGroupLabel("Settings:");
-            baseMenu.Add("ping", new CheckBox("Calculate Ping"));
-            baseMenu.Add("col", new CheckBox("Check Collison"));
-            baseMenu.Add("limit", new Slider("FoW Time Limit [{0}]", 120, 0, 180));
-            baseMenu.AddLabel("0 = Always");
-            baseMenu.AddSeparator(0);
-            baseMenu.AddGroupLabel("Drawings:");
-            baseMenu.Add("count", new CheckBox("Draw Count"));
-            baseMenu.Add("draw", new CheckBox("Draw Recall Bar"));
-            var x = baseMenu.Add("rbx", new Slider("RecallBar X", 0, -200, 200));
-            x.OnValueChange += delegate(ValueBase<int> sender, ValueBase<int>.ValueChangeArgs changeArgs)
-                {
-                    if (changeArgs.NewValue != changeArgs.OldValue)
-                    {
-                        Recallbar.X2 = changeArgs.NewValue * 10;
-                        Changed = Core.GameTickCount;
-                    }
-                };
-            Recallbar.X2 = x.CurrentValue * 10;
-            var y = baseMenu.Add("rby", new Slider("RecallBar Y", 0, -200, 200));
-            y.OnValueChange += delegate(ValueBase<int> sender, ValueBase<int>.ValueChangeArgs changeArgs)
-                {
-                    if (changeArgs.NewValue != changeArgs.OldValue)
-                    {
-                        Recallbar.Y2 = changeArgs.NewValue * 10;
-                        Changed = Core.GameTickCount;
-                    }
-                };
-            Recallbar.Y2 = y.CurrentValue * 10;
-            baseMenu.AddGroupLabel("BaseUlt Enemies:");
-            baseultlist.Clear();
-            RecallsList.Clear();
+            MenuIni.AddGroupLabel("Enemies To BaseUlt");
             foreach (var enemy in EntityManager.Heroes.Enemies)
-            {
-                baseMenu.Add(enemy.NetworkId.ToString(), new CheckBox("Use On " + enemy.BaseSkinName + " - (" + enemy.Name + ")"));
-                baseultlist.Add(new EnemyInfo(enemy));
-            }
+                MenuIni.Add(enemy.BaseSkinName, new CheckBox($"BaseUlt {enemy.BaseSkinName}"));
+            MenuIni.AddSeparator(0);
 
-            Game.OnUpdate += Game_OnTick;
+            MenuIni.AddGroupLabel("Drawings");
+            MenuIni.Add("draw", new CheckBox("Draw Recall Tracker"));
+            MenuIni.Add("x", new Slider("Drawing X"));
+            MenuIni.Add("y", new Slider("Drawing Y"));
+
+            Game.OnUpdate += Game_OnUpdate;
             Teleport.OnTeleport += Teleport_OnTeleport;
-            Drawing.OnEndScene += Drawing_OnDraw;
+            Drawing.OnEndScene += Drawing_OnEndScene;
+            //Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+            //Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
         }
 
-        private static void Game_OnTick(EventArgs args)
+        private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            foreach (var enemy in baseultlist.Where(e => e.Enemy.IsHPBarRendered && !e.Enemy.IsDead))
-            {
-                enemy.lastseen = Game.Time;
-            }
-
-            foreach (var enemy in RecallsList.Where(d => baseMenu[d.Enemy.NetworkId.ToString()].Cast<CheckBox>().CurrentValue && d.Duration > 0))
-            {
-                DoBaseUlt(enemy);
-            }
-        }
-
-        private static void Drawing_OnDraw(EventArgs args)
-        {
-            if (baseMenu["count"].Cast<CheckBox>().CurrentValue)
-            {
-                Drawing.DrawText(Drawing.Height * 0.25f, Drawing.Width * 0.1f, System.Drawing.Color.GreenYellow, $"PossibleBaseUlts: {Counter}");
-            }
-            if (!baseMenu["draw"].Cast<CheckBox>().CurrentValue)
-            {
+            var caster = sender as AIHeroClient;
+            if(caster == null || !caster.IsAlly || caster.IsMe)
                 return;
-            }
-            /*
-            var X = Player.Instance.ServerPosition.WorldToScreen().X;
-            var Y = Player.Instance.ServerPosition.WorldToScreen().Y;
-            float i = 0;
-            */
-            foreach (var player in RecallsList.Where(e => baseMenu[e.Enemy.NetworkId.ToString()].Cast<CheckBox>().CurrentValue && e.Duration > 0))
+
+            Baseult baseUlt;
+            try { baseUlt = InGameUlts[caster.NetworkId]; }
+            catch (Exception) { return; }
+
+            if(baseUlt.Slot != args.Slot)
+                return;
+            
+            if(!TrackedRecalls.Any(r => r.CastPosition(baseUlt, caster).IsInRange(args.End, 275) && r.TicksLeft + Game.Ping >= baseUlt.TravelTime(r.CastPosition(baseUlt, caster)) - 50))
+                return;
+            
+        }
+
+        private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
+        {
+            var spelldata = getSpell(sender.Owner, args.Slot).SData;
+            Console.WriteLine($"{spelldata.Name} - {sender.Owner.Spellbook.GetSpell(args.Slot).SData.Name} - {spelldata.MissileSpeed} - {spelldata.CastTime}");
+        }
+
+        private static void Drawing_OnEndScene(EventArgs args)
+        {
+            if(!Draw)
+                return;
+
+            var drawText = "Tracked Recalls:\n";
+            var end = new Vector3();
+            foreach (var recall in TrackedRecalls)
             {
-                /*
-                var lastseen = baseultlist.FirstOrDefault(e => e.Enemy.NetworkId == player.Enemy.NetworkId);
-                Drawing.DrawText(
-                    X,
-                    Y + i,
-                    System.Drawing.Color.White,
-                    player.Enemy.BaseSkinName + " | CountDown: " + (int)(player.CountDown()) + " | TravelTime: " + (int)player.Enemy.traveltime()
-                    + " | LastSeen: " + (int)(Game.Time - lastseen?.lastseen) + " | Damage: " + (int)(player.Enemy.GetDamage()) + " | Health: "
-                    + (int)player.Enemy.HP(),
-                    5);
-                i += 20f;
-                */
-                player.RecallBarDraw();
+                var castPos = recall.CastPosition(BaseUltSpell, Player.Instance);
+                var canBaseUlt = CanBaseUlt(recall, BaseUltSpell, Player.Instance);
+                drawText += $"- {recall.Caster.BaseSkinName}: {recall.TicksLeft/*} | {BaseUltSpell.TravelTime(castPos)} | {healthAfterTime(recall.Caster, BaseUltSpell.TravelTime(castPos))*/} {(canBaseUlt ? "| CanBaseUlt" : recall.Ulted ? "| Ulted" : "")}\n";
+                end = castPos;
             }
-            if (Core.GameTickCount - Changed < 3000)
-            {
-                new EnemyInfo(Player.Instance).RecallBarDraw();
-            }
+
+            //end.DrawCircle(100, SharpDX.Color.AliceBlue);
+            Drawing.DrawText((int)(Drawing.Width * (X * 0.01f)), (int)(Drawing.Height * (Y * 0.01f)), Color.AliceBlue, drawText);
         }
 
         private static void Teleport_OnTeleport(Obj_AI_Base sender, Teleport.TeleportEventArgs args)
         {
-            if (!sender.IsEnemy || args.Type != TeleportType.Recall)
-            {
+            var caster = sender as AIHeroClient;
+            if(caster == null || !caster.IsEnemy)
                 return;
-            }
-            var hero = sender as AIHeroClient;
-            if(hero == null)
-                return;
-            if (args.Status == TeleportStatus.Start)
+
+            if (args.Type == TeleportType.Recall && args.Status == TeleportStatus.Start)
             {
-                if (RecallsList.Exists(s => s.Enemy.NetworkId.Equals(hero.NetworkId)))
+                var spawn = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(o => o.Team == caster.Team);
+                if (spawn != null)
                 {
-                    RecallsList.Add(new EnemyInfo(hero) { Duration = args.Duration, Started = args.Start, RecallDuration = args.Duration + Core.GameTickCount });
-                }
-                else
-                {
-                    RecallsList.Add(new EnemyInfo(hero) { Duration = args.Duration, Started = args.Start, RecallDuration = args.Duration + Core.GameTickCount });
-                }
-
-                if (args.Duration >= hero.traveltime() && hero.Killable())
-                {
-                    Counter ++;
-                }
-            }
-            else
-            {
-                var remove = RecallsList.FirstOrDefault(r => r.Enemy.NetworkId.Equals(hero.NetworkId));
-                if (remove == null)
-                {
-                    return;
-                }
-                RecallsList.Remove(remove);
-                removeFromList(remove.Enemy);
-            }
-        }
-
-        public static bool Killable(this Obj_AI_Base target)
-        {
-            var enemy = baseultlist.FirstOrDefault(e => e.Enemy.NetworkId.Equals(target.NetworkId));
-            return enemy?.Enemy.GetDamage() >= target.Health;
-        }
-
-        /*
-        public static float HP(this Obj_AI_Base target)
-        {
-            var enemy = baseultlist.FirstOrDefault(e => e.Enemy.NetworkId.Equals(target.NetworkId));
-            var f = (enemy?.Enemy.Health + (enemy?.Enemy.HPRegenRate * (Game.Time - enemy?.lastseen))) * 0.9f;
-            return f ?? 0;
-        }*/
-
-        public static float GetDamage(this AIHeroClient target)
-        {
-            var dmg = Player.Instance.GetSpellDamage(target, SpellSlot.R);
-            var extradmg = 0f;
-            if (Player.Instance.HasBuff("GangplankRUpgrade2"))
-            {
-                extradmg = dmg * 3F;
-            }
-            return !R.IsLearned ? 0 : dmg + extradmg;
-        }
-
-        private static void removeFromList(Obj_AI_Base sender)
-        {
-            var recall = RecallsList.FirstOrDefault(x => x.Enemy.NetworkId.Equals(sender.NetworkId));
-
-            if (recall == null)
-            {
-                return;
-            }
-
-            RecallsList.Remove(recall);
-        }
-
-        public static float traveltime(this Obj_AI_Base target)
-        {
-            var hero = Player.Instance.Hero;
-            var pos = target.Fountain();
-            var distance = Player.Instance.Distance(pos);
-            var speed = R.Speed;
-            var delay = CastDelay(baseMenu["ping"].Cast<CheckBox>().CurrentValue);
-
-            switch (hero)
-            {
-                case Champion.Lux:
-                case Champion.Karthus:
-                case Champion.Pantheon:
-                case Champion.Gangplank:
-                    return delay;
-            }
-
-            return distance / speed * 1000f;
-        }
-
-        public static float CastDelay(bool c)
-        {
-            return c ? R.CastDelay - (Game.Ping / 2f) : R.CastDelay;
-        }
-
-        private static void DoBaseUlt(EnemyInfo target)
-        {
-            var disable = baseMenu["disable1"].Cast<KeyBind>().CurrentValue;
-            var enable = baseMenu["enable"].Cast<KeyBind>().CurrentValue;
-            var CountDown = target.CountDown();
-            var Traveltime = traveltime(target.Enemy);
-
-            if (enable && !disable)
-            {
-                if (R.IsReady() && lastseen(target) && CountDown >= Traveltime && target.Enemy.Killable())
-                {
-                    if (CountDown - Traveltime <= CastDelay(baseMenu["ping"].Cast<CheckBox>().CurrentValue) && !target.Enemy.Collison())
+                    TrackedRecalls.Add(new TrackedRecall
                     {
-                        Console.WriteLine("BASEULT");
-                        Player.Instance.Spellbook.CastSpell(R.Slot, target.Enemy.Fountain());
-                    }
+                        Caster = caster,
+                        RecallDuration = args.Duration,
+                        StartTick = Core.GameTickCount,
+                        EndPosition = spawn.Position
+                    });
                 }
+            }
+
+            if (args.Status == TeleportStatus.Finish || args.Status == TeleportStatus.Abort || args.Status == TeleportStatus.Unknown)
+            {
+                TrackedRecalls.RemoveAll(t => t.Caster.IdEquals(caster));
             }
         }
 
-        private static bool lastseen(EnemyInfo target)
+        private static void Game_OnUpdate(EventArgs args)
         {
-            var enemy = baseultlist.FirstOrDefault(e => e.Enemy.NetworkId == target.Enemy.NetworkId);
-            float timelimit = baseMenu["limit"].Cast<Slider>().CurrentValue;
-            if (enemy != null)
+            foreach (var enemy in EntityManager.Heroes.Enemies)
             {
-                if (timelimit.Equals(0))
+                if(!enemy.IsHPBarRendered && !NotVisiableEnemies.Any(e => e.Target.IdEquals(enemy)))
+                    NotVisiableEnemies.Add(new NotVisiable(enemy));
+
+                if (enemy.IsHPBarRendered && NotVisiableEnemies.Any(e => e.Target.IdEquals(enemy)))
+                    NotVisiableEnemies.RemoveAll(t => t.Target.IdEquals(enemy));
+            }
+
+            if(BaseUltSpell == null || !TrackedRecalls.Any())
+                return;
+
+            TrackedRecalls.RemoveAll(t => t.Ended);
+
+            if(!Enabled || DisableKey)
+                return;
+
+            TrackedRecall recallTarget = null;
+
+            switch (FocusMode)
+            {
+                case 0:
+                    recallTarget = TrackedRecalls.OrderByDescending(t => TargetSelector.GetPriority(t.Caster)).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    break;
+                case 1:
+                    recallTarget = TrackedRecalls.OrderBy(t => healthAfterTime(t.Caster, BaseUltSpell.TravelTime(t.CastPosition(BaseUltSpell, Player.Instance)))).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    break;
+                case 2:
+                    recallTarget = TrackedRecalls.OrderBy(t => t.StartTick).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    break;
+                case 3:
+                    recallTarget = TrackedRecalls.OrderByDescending(t => t.StartTick).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    break;
+                default:
+                    recallTarget = TrackedRecalls.OrderByDescending(t => TargetSelector.GetPriority(t.Caster)).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    break;
+            }
+
+            if(recallTarget == null)
+                return;
+            
+            var travelTime = BaseUltSpell.TravelTime(recallTarget.CastPosition(BaseUltSpell, Player.Instance));
+            var offset = 50 + Tolerance;
+            offset += Game.Ping;
+            var mod = recallTarget.TicksLeft - travelTime;
+            if (offset >= mod && BaseUltSpell.Cast(recallTarget.CastPosition(BaseUltSpell, Player.Instance)))
+            {
+                recallTarget.Ulted = true;
+            }
+        }
+
+        private static SpellDataInst getSpell(Obj_AI_Base target, SpellSlot slot)
+        {
+            return target.Spellbook.GetSpell(slot);
+        }
+
+        private static float calculateDamage(AIHeroClient target, AIHeroClient source, Baseult spell)
+        {
+            return spell.CalculateDamage(source, target);
+        }
+
+        private static float healthAfterTime(AIHeroClient unit, float time)
+        {
+            var staticHPRegen = unit.CharData.BaseStaticHPRegen;
+            var notVisiable = NotVisiableEnemies.FirstOrDefault(t => t.Target.IdEquals(unit));
+            return Math.Min(unit.TotalShieldMaxHealth(), unit.TotalShieldHealth() + (staticHPRegen * ((notVisiable?.TicksPassed/1000f ?? 0f) + (time/1000f))));
+        }
+
+        public static bool CanBaseUlt(TrackedRecall recall, Baseult spell, AIHeroClient source)
+        {
+            var visiable = NotVisiableEnemies.FirstOrDefault(e => e.Target.IdEquals(recall.Caster));
+            return !recall.Ulted
+                && (visiable == null || FowTolerance * 1000 > visiable.TicksPassed - recall.TicksPassed)
+                && MenuIni.Get<CheckBox>(recall.Caster.BaseSkinName).CurrentValue
+                && spell.IsInRange(recall.CastPosition(spell, source))
+                && recall.TicksLeft > spell.TravelTime(recall.CastPosition(spell, source))
+                && Collision.Check(source, recall.CastPosition(spell, source), spell)
+                && calculateDamage(recall.Caster, source, spell) >= healthAfterTime(recall.Caster, spell.TravelTime(recall.CastPosition(spell, source)));
+        }
+
+        private static bool loadUlts()
+        {
+            foreach (var a in EntityManager.Heroes.Allies)
+            {
+                if (a.ChampionName.Equals("Ashe"))
                 {
-                    return true;
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, int.MaxValue, 140, 250, 1600)
+                    {
+                        RawDamage = () => (200f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage,
+                        AllowedCollisionCount = 1
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
                 }
-                return Game.Time - enemy.lastseen <= timelimit;
+
+                if (a.ChampionName.Equals("Draven"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Physical, int.MaxValue, 160, 300, 2000)
+                    {
+                        RawDamage = () => 75f + (100f * getSpell(a, SpellSlot.R).Level) + a.FlatPhysicalDamageMod * 1.1f,
+                        AllowedCollisionCount = -1,
+                        NameCheck = "DravenRCast"
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Ezreal"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, int.MaxValue, 160, 1000, 2000)
+                    {
+                        RawDamage = () => 200f + (150f * getSpell(a, SpellSlot.R).Level) + a.FlatPhysicalDamageMod + (a.TotalMagicalDamage * 0.9f),
+                        AllowedCollisionCount = -1,
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Jinx"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Physical, int.MaxValue, 140, 550, 2100)
+                    {
+                        RawDamage = () => 150f + (100f * getSpell(a, SpellSlot.R).Level) + a.FlatPhysicalDamageMod * 1.5f,
+                        AllowedCollisionCount = 1,
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Karthus"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, int.MaxValue, -1, 3000, int.MaxValue)
+                    {
+                        RawDamage = () => 100f + (150f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage * 0.6f,
+                        AllowedCollisionCount = int.MaxValue,
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Lux"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, 3500, 150, 950, int.MaxValue)
+                    {
+                        RawDamage = () => 200f + (100f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage * 0.75f,
+                        AllowedCollisionCount = int.MaxValue
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Xerath"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, 3520, 200, 600, int.MaxValue)
+                    {
+                        RawDamage = () => 170f + (30f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage * 0.43f,
+                        AllowedCollisionCount = int.MaxValue,
+                        NameCheck = "XerathRMissileWrapper",
+                        RangeGrow = 1320,
+                        SkillType = SkillShotType.Circular
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Pantheon"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, 5500, 700, 4600, int.MaxValue)
+                    {
+                        RawDamage = () => 100f + (300f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage,
+                        AllowedCollisionCount = int.MaxValue,
+                        NameCheck = "PantheonRJump"
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Ziggs"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, 5250, 275, 250, 1750)
+                    {
+                        RawDamage = () => 150f + (150f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage * 1.1f,
+                        AllowedCollisionCount = int.MaxValue,
+                        SkillType = SkillShotType.Circular
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Gragas"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Magical, 1100, 400, 250, 1600)
+                    {
+                        RawDamage = () => 100f + (100f * getSpell(a, SpellSlot.R).Level) + a.TotalMagicalDamage * 0.7f,
+                        AllowedCollisionCount = -1,
+                        SkillType = SkillShotType.Circular
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
+
+                if (a.ChampionName.Equals("Graves"))
+                {
+                    BaseUltSpell = new Baseult(SpellSlot.R, DamageType.Physical, 1250, 100, 250, 2100)
+                    {
+                        RawDamage = () => 100f + (150f * getSpell(a, SpellSlot.R).Level) + a.FlatPhysicalDamageMod * 1.5f,
+                        AllowedCollisionCount = 1,
+                    };
+
+                    InGameUlts.Add(a.NetworkId, BaseUltSpell);
+                }
             }
-            return Game.Time - target?.lastseen <= timelimit;
+
+            BaseUltSpell = null;
+
+            try { BaseUltSpell = InGameUlts[Player.Instance.NetworkId]; }
+            catch (Exception) { return false; }
+
+            return BaseUltSpell != null;
         }
 
-        public static float CountDown(this EnemyInfo target)
+        public class NotVisiable
         {
-            return target.Started + target.Duration - Core.GameTickCount;
-        }
-
-        private static bool Collison(this Obj_AI_Base target)
-        {
-            var col = baseMenu["col"].Cast<CheckBox>().CurrentValue;
-            var Rectangle = new Geometry.Polygon.Rectangle(Player.Instance.ServerPosition, target.Fountain(), R.Width);
-
-            return col && EntityManager.Heroes.Enemies.Count(e => Rectangle.IsInside(e) && e.IsValidTarget()) > R.AllowedCollisionCount;
-        }
-
-        private static Vector3 Fountain(this Obj_AI_Base target)
-        {
-            var objSpawnPoint = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.Team == target.Team);
-            return objSpawnPoint?.Position ?? Vector3.Zero;
-        }
-
-        public class EnemyInfo
-        {
-            public AIHeroClient Enemy;
-            public float lastseen;
-            public float RecallDuration;
-            public float Duration;
-            public float Started;
-            public EnemyInfo(AIHeroClient enemy)
+            public NotVisiable(AIHeroClient target)
             {
-                this.Enemy = enemy;
-                this.lastseen = 0f;
-                this.Duration = 0f;
+                this.Target = target;
             }
+            public AIHeroClient Target;
+            private float _startTick = Core.GameTickCount;
+            public float TicksPassed => Core.GameTickCount - this._startTick;
         }
     }
 }
