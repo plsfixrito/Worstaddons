@@ -65,19 +65,19 @@ namespace KappaBaseUlt
             return Player.Instance.Distance(pos) / this.Speed * 1000 + this.CastDelay;
         }
 
-        public float CalculateDamage(Obj_AI_Base source, Obj_AI_Base target)
+        public float CalculateDamage(Obj_AI_Base source, TrackedRecall recall)
         {
-            if (target == null)
+            if (recall.Caster == null)
                 return -1f;
 
             var rawDamage = this.Damage;
 
             if (source.BaseSkinName.Equals("Jinx"))
             {
-                rawDamage += (0.2f + 0.05f * source.Spellbook.GetSpell(this.Slot).Level) * (target.MaxHealth - target.Health);
+                rawDamage += (0.2f + 0.05f * source.Spellbook.GetSpell(this.Slot).Level) * (recall.Caster.MaxHealth - Program.healthAfterTime(recall, TravelTime(recall.CastPosition(this, source))));
             }
 
-            return source.CalculateDamageOnUnit(target, DamageType, rawDamage);
+            return source.CalculateDamageOnUnit(recall.Caster, DamageType, rawDamage);
         }
     }
 }

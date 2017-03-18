@@ -164,7 +164,7 @@ namespace KappaBaseUlt
                     recallTarget = TrackedRecalls.OrderByDescending(t => TargetSelector.GetPriority(t.Caster)).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
                     break;
                 case 1:
-                    recallTarget = TrackedRecalls.OrderBy(t => healthAfterTime(t.Caster, BaseUltSpell.TravelTime(t.CastPosition(BaseUltSpell, Player.Instance)))).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
+                    recallTarget = TrackedRecalls.OrderBy(t => healthAfterTime(t, BaseUltSpell.TravelTime(t.CastPosition(BaseUltSpell, Player.Instance)))).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
                     break;
                 case 2:
                     recallTarget = TrackedRecalls.OrderBy(t => t.StartTick).FirstOrDefault(t => CanBaseUlt(t, BaseUltSpell, Player.Instance));
@@ -194,16 +194,16 @@ namespace KappaBaseUlt
             return target.Spellbook.GetSpell(slot);
         }
 
-        private static float calculateDamage(AIHeroClient target, AIHeroClient source, Baseult spell)
+        private static float calculateDamage(TrackedRecall recall, AIHeroClient source, Baseult spell)
         {
-            return spell.CalculateDamage(source, target);
+            return spell.CalculateDamage(source, recall);
         }
 
-        private static float healthAfterTime(AIHeroClient unit, float time)
+        public static float healthAfterTime(TrackedRecall recall, float time)
         {
-            var staticHPRegen = unit.CharData.BaseStaticHPRegen;
-            var notVisiable = NotVisiableEnemies.FirstOrDefault(t => t.Target.IdEquals(unit));
-            return Math.Min(unit.TotalShieldMaxHealth(), unit.TotalShieldHealth() + (staticHPRegen * ((notVisiable?.TicksPassed/1000f ?? 0f) + (time/1000f))));
+            var staticHPRegen = recall.Caster.CharData.BaseStaticHPRegen;
+            var notVisiable = NotVisiableEnemies.FirstOrDefault(t => t.Target.IdEquals(recall.Caster));
+            return Math.Min(recall.Caster.TotalShieldMaxHealth(), recall.Caster.TotalShieldHealth() + (staticHPRegen * ((notVisiable?.TicksPassed/1000f ?? 0f) + (time/1000f))));
         }
 
         public static bool CanBaseUlt(TrackedRecall recall, Baseult spell, AIHeroClient source)
@@ -216,7 +216,7 @@ namespace KappaBaseUlt
                 && spell.IsInRange(recall.CastPosition(spell, source))
                 && recall.TicksLeft > spell.TravelTime(recall.CastPosition(spell, source))
                 && Collision.Check(source, recall.CastPosition(spell, source), spell, recall.Caster)
-                && calculateDamage(recall.Caster, source, spell) >= healthAfterTime(recall.Caster, spell.TravelTime(recall.CastPosition(spell, source)));
+                && calculateDamage(recall, source, spell) >= healthAfterTime(recall, spell.TravelTime(recall.CastPosition(spell, source)));
         }
 
         private static bool loadUlts()
