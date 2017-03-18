@@ -8,7 +8,7 @@ namespace KappaBaseUlt
 {
     public static class Collision
     {
-        public static bool Check(AIHeroClient start, Vector3 end, Baseult spell)
+        public static bool Check(AIHeroClient start, Vector3 end, Baseult spell, AIHeroClient target = null)
         {
             if (spell.AllowedCollisionCount >= int.MaxValue)
             {
@@ -24,7 +24,7 @@ namespace KappaBaseUlt
             }
 
             var polygon = new Geometry.Polygon.Rectangle(start.ServerPosition, end, spell.Width);
-            return !EntityManager.Heroes.AllHeroes.Any(h => h.IsValid && !h.IsDead && h.Team != start.Team && polygon.IsInside(h));
+            return !EntityManager.Heroes.AllHeroes.Any(h => h.IsValid && !h.IsDead && h.Team != start.Team && (target == null || !target.IdEquals(h)) && polygon.IsInside(h));
         }
     }
 }

@@ -46,7 +46,8 @@ namespace KappaBaseUlt
             MenuIni.Add("enable", new KeyBind("Enable", true, KeyBind.BindTypes.PressToggle));
             MenuIni.Add("disable", new KeyBind("Force Disable", false, KeyBind.BindTypes.HoldActive));
             MenuIni.Add("fow", new Slider("FoW Tolerance 0 = Always (In Seconds)", 7, 0, 60));
-            MenuIni.Add("tolerance", new Slider("Shoot Tolerance (In MilliSeconds)", 0, 0, 300));
+            MenuIni.Add("tolerance", new Slider("Shoot Tolerance (In MilliSeconds)", 0, -150, 300));
+            MenuIni.AddLabel("More value = delay | Less value = Early");
             MenuIni.AddSeparator(0);
 
             MenuIni.AddGroupLabel("Enemies To BaseUlt");
@@ -180,8 +181,7 @@ namespace KappaBaseUlt
                 return;
             
             var travelTime = BaseUltSpell.TravelTime(recallTarget.CastPosition(BaseUltSpell, Player.Instance));
-            var offset = 50 + Tolerance;
-            offset += Game.Ping;
+            var offset = 50 + Game.Ping + Tolerance;
             var mod = recallTarget.TicksLeft - travelTime;
             if (offset >= mod && BaseUltSpell.Cast(recallTarget.CastPosition(BaseUltSpell, Player.Instance)))
             {
@@ -210,11 +210,12 @@ namespace KappaBaseUlt
         {
             var visiable = NotVisiableEnemies.FirstOrDefault(e => e.Target.IdEquals(recall.Caster));
             return !recall.Ulted
-                && (visiable == null || FowTolerance * 1000 > visiable.TicksPassed - recall.TicksPassed)
+                && spell.IsReady()
+                && (FowTolerance == 0 || visiable == null || FowTolerance * 1000 > visiable.TicksPassed - recall.TicksPassed)
                 && MenuIni.Get<CheckBox>(recall.Caster.BaseSkinName).CurrentValue
                 && spell.IsInRange(recall.CastPosition(spell, source))
                 && recall.TicksLeft > spell.TravelTime(recall.CastPosition(spell, source))
-                && Collision.Check(source, recall.CastPosition(spell, source), spell)
+                && Collision.Check(source, recall.CastPosition(spell, source), spell, recall.Caster)
                 && calculateDamage(recall.Caster, source, spell) >= healthAfterTime(recall.Caster, spell.TravelTime(recall.CastPosition(spell, source)));
         }
 

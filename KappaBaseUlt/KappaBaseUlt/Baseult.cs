@@ -40,7 +40,7 @@ namespace KappaBaseUlt
             return Player.Instance.IsInRange(pos, this.CurrentRange);
         }
 
-        public bool Cast(Vector3 pos)
+        public bool IsReady()
         {
             var spell = Player.Instance.Spellbook.GetSpell(this.Slot);
             if (!string.IsNullOrEmpty(NameCheck) && spell.SData.Name != NameCheck)
@@ -48,7 +48,12 @@ namespace KappaBaseUlt
 
             if (!spell.IsLearned || !spell.IsReady)
                 return false;
-            
+
+            return true;
+        }
+
+        public bool Cast(Vector3 pos)
+        {
             return Player.CastSpell(this.Slot, pos);
         }
 
