@@ -18,7 +18,7 @@ namespace DarkStar_Mode
         private static Vector3 center = new Vector3(3798, 3738, 25);
         private static Geometry.Polygon CenterPoly = new Geometry.Polygon.Circle(center, 325);
         private static KeyBind acitve;
-        private static CheckBox QonlyIntoCenter, QSelected, WSaveAlly, UseE, drawCenter, drawE;
+        private static CheckBox QonlyIntoCenter, QSelected, WSaveAlly, UseE, dontAA, drawCenter, drawE;
         private static List<AIHeroClient> enemyIntersections = new List<AIHeroClient>();
         private static AIHeroClient SelectedTarget;
         private static float lastQ;
@@ -34,7 +34,7 @@ namespace DarkStar_Mode
                 return;
 
             Q = new Spell.Skillshot(SpellSlot.Q, 500000, SkillShotType.Linear, 500, 1900, 65, DamageType.Magical) {AllowedCollisionCount = 0};
-            W = new Spell.Skillshot(SpellSlot.W, 50000, SkillShotType.Circular, 0, int.MaxValue, 300, DamageType.Magical);
+            W = new Spell.Skillshot(SpellSlot.W, 50000, SkillShotType.Circular, 200, int.MaxValue, 300, DamageType.Magical);
             E = new Spell.Skillshot(SpellSlot.E, 1000, SkillShotType.Linear, 125, 2000, 110, DamageType.Magical);
 
             var menu = MainMenu.AddMenu("DarkStar-Mode", "DarkStarmode");
@@ -43,6 +43,7 @@ namespace DarkStar_Mode
             QSelected = menu.Add("QSelected", new CheckBox("Q Selected Target"));
             WSaveAlly = menu.Add("WSaveAlly", new CheckBox("W Save Allies"));
             UseE = menu.Add("UseE", new CheckBox("E Push Enemy To Center"));
+            dontAA = menu.Add("dontAA", new CheckBox("Dont AA target if target health less than 1%"));
             menu.AddGroupLabel("Drawings");
             drawCenter = menu.Add("drawCenter", new CheckBox("Draw Center"));
             drawE = menu.Add("drawE", new CheckBox("Draw E"));
@@ -51,6 +52,13 @@ namespace DarkStar_Mode
             Drawing.OnDraw += Drawing_OnDraw;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
             Obj_AI_Base.OnBuffGain += Obj_AI_Base_OnBuffGain;
+            Orbwalker.OnPreAttack += Orbwalker_OnPreAttack;
+        }
+
+        private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args)
+        {
+            if (dontAA.CurrentValue && target.HealthPercent <= 2)
+                args.Process = false;
         }
 
         private static void Obj_AI_Base_OnBuffGain(Obj_AI_Base sender, Obj_AI_BaseBuffGainEventArgs args)
@@ -61,12 +69,12 @@ namespace DarkStar_Mode
             switch (args.Buff.Type)
             {
                 case BuffType.Stun:
-                    if(CheckInterection(sender.ServerPosition, args.Buff.Caster.Position))
-                        W.Cast(sender.ServerPosition);
+                    if (CheckInterection(sender.ServerPosition, args.Buff.Caster.Position))
+                        CastW(sender);
                     break;
                 case BuffType.Slow:
                     if (sender.HealthPercent < 70 || sender.IsInRange(center, 1000))
-                        W.Cast(sender.ServerPosition);
+                        CastW(sender);
                     break;
             }
         }
@@ -140,9 +148,26 @@ namespace DarkStar_Mode
             }
         }
 
+        private static void CastW(Obj_AI_Base target)
+        {
+            var dashInfo = target.GetDashInfo();
+            if (dashInfo != null)
+            {
+                var intersection = GetIntersectionResult(target.ServerPosition, dashInfo.EndPos);
+                if (intersection.WillHit)
+                    W.Cast(intersection.WillHit ? intersection.Point.To3D() : dashInfo.EndPos);
+            }
+            W.Cast(target);
+        }
+
         private static bool CheckInterection(Vector3 start, Vector3 end)
         {
-            return new IntersectionResult(start.To2D(), end.To2D()).WillHit;
+            return GetIntersectionResult(start, end).WillHit;
+        }
+
+        private static IntersectionResult GetIntersectionResult(Vector3 start, Vector3 end)
+        {
+            return new IntersectionResult(start.To2D(), end.To2D());
         }
 
         private static Geometry.Polygon EPoly
