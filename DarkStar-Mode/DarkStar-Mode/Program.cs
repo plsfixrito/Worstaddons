@@ -144,7 +144,7 @@ namespace DarkStar_Mode
             {
                 var target = EntityManager.Heroes.Enemies.FirstOrDefault(t => t.IsValidTarget() && EPoly.IsInside(E.GetPrediction(t).CastPosition) && (E.GetPrediction(t).CastPosition.IsInRange(center, 750) || Player.Instance.IsInRange(center, 700) || EPoly.IsInside(center) || t.HealthPercent < 60));
                 if (target != null)
-                    E.Cast(Player.Instance.ServerPosition.Extend(center, 300).To3D());
+                    Player.Instance.Spellbook.CastSpell(SpellSlot.E, center);
             }
         }
 
